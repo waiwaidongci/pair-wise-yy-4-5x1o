@@ -3,151 +3,691 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>水下考古潜水记录</title>
+  <title>水下考古样本移交台</title>
   <style>
     * { box-sizing: border-box; }
     body { margin: 0; font-family: Arial, "PingFang SC", sans-serif; background: #e8f2f3; color: #183035; }
     header { padding: 18px 24px; background: #fff; border-bottom: 1px solid #c9dadc; display: flex; justify-content: space-between; gap: 16px; align-items: center; }
     h1 { margin: 0; font-size: 26px; }
+    h2 { font-size: 17px; margin: 14px 0 8px; }
     button { border: 0; border-radius: 8px; padding: 10px 13px; background: #1d6c78; color: #fff; font-weight: 800; cursor: pointer; }
     button.secondary { background: #64777b; }
+    button.danger { background: #a23f3a; }
+    button:disabled { background: #9fb6b9; cursor: not-allowed; }
     input, select, textarea { width: 100%; border: 1px solid #c9dadc; border-radius: 6px; padding: 9px; font: inherit; background: #fff; }
-    textarea { min-height: 64px; }
+    textarea { min-height: 56px; }
     label { display: block; margin: 9px 0 5px; color: #5c7378; font-size: 13px; }
-    .app { display: grid; grid-template-columns: 1fr 360px; gap: 16px; padding: 16px; }
+    .app { display: grid; grid-template-columns: 1fr 380px; gap: 16px; padding: 16px; }
     .panel { background: #fff; border: 1px solid #c9dadc; border-radius: 8px; padding: 14px; }
-    .map { position: relative; height: calc(100vh - 128px); min-height: 560px; overflow: hidden; background: radial-gradient(circle at 30% 20%, #5fa8b1, #0f5262 55%, #07333f); border-radius: 8px; border: 1px solid #0c4451; cursor: crosshair; }
+    .side { max-height: calc(100vh - 96px); overflow: auto; }
+    .mapwrap { position: relative; }
+    .map { position: relative; height: calc(100vh - 150px); min-height: 560px; overflow: hidden; background: radial-gradient(circle at 30% 20%, #5fa8b1, #0f5262 55%, #07333f); border-radius: 8px; border: 1px solid #0c4451; cursor: crosshair; }
     .wreck { position: absolute; left: 24%; top: 28%; width: 52%; height: 31%; border: 3px solid rgba(220,235,224,.55); border-radius: 48% 44% 42% 50%; transform: rotate(-9deg); }
     .rib { position: absolute; width: 2px; height: 36%; background: rgba(220,235,224,.35); top: 27%; transform: rotate(-9deg); }
-    .marker { position: absolute; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 800; transform: translate(-50%, -50%); border: 2px solid rgba(255,255,255,.7); box-shadow: 0 4px 12px rgba(0,0,0,.35); cursor: pointer; }
-    .marker.selected { outline: 4px solid rgba(255,234,124,.75); }
+    .marker { position: absolute; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 800; transform: translate(-50%, -50%); border: 2px solid rgba(255,255,255,.85); cursor: pointer; padding: 0; }
+    .marker.selected { outline: 4px solid rgba(255,234,124,.8); z-index: 5; }
+    .marker.stg-registered { outline: 2px dashed rgba(255,255,255,.95); outline-offset: 2px; }
+    .marker.stg-reviewed { box-shadow: 0 0 0 3px rgba(127,196,255,.95); }
+    .marker.stg-stored { box-shadow: 0 0 0 3px rgba(124,222,158,.95); }
     .ceramic { background: #b56c38; } .wood { background: #6c4b2f; } .metal { background: #6e7880; } .unknown { background: #725ca6; }
-    .toolbar { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-    .list { display: grid; gap: 8px; max-height: 330px; overflow: auto; }
+    .maphint { position: absolute; left: 12px; top: 10px; color: rgba(255,255,255,.85); font-size: 12px; pointer-events: none; text-shadow: 0 1px 3px rgba(0,0,0,.5); }
+    .legend { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; font-size: 12px; color: #5c7378; }
+    .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 10px; }
+    .toolbar select, .toolbar button { width: auto; flex: 1 1 30%; }
+    .list { display: grid; gap: 8px; max-height: 300px; overflow: auto; }
+    .timeline { display: grid; gap: 10px; max-height: 420px; overflow: auto; }
     .item { border: 1px solid #d7e4e5; border-radius: 8px; padding: 10px; cursor: pointer; }
     .item.active { border-color: #1d6c78; background: #eef8f9; }
-    .timeline { display: grid; gap: 8px; max-height: 240px; overflow: auto; }
-    .pill { display: inline-block; padding: 3px 8px; border: 1px solid #c9dadc; border-radius: 999px; font-size: 12px; }
+    .tg { cursor: default; background: #f4f9fa; }
+    .tl-rec { margin: 7px 0 3px 8px; padding-left: 8px; border-left: 2px solid #cfe2e4; cursor: pointer; }
+    .tl-ev { color: #5c7378; font-size: 12px; margin-top: 2px; }
+    .tl-pend { color: #8a5a00; font-size: 12px; font-weight: 700; }
+    .pill { display: inline-block; padding: 3px 8px; border: 1px solid #c9dadc; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+    .stage-registered { background: #fff3d6; border-color: #e3c276; color: #7d5a00; }
+    .stage-reviewed { background: #e2f0fb; border-color: #9fc6e8; color: #1c5680; }
+    .stage-stored { background: #e2f6e8; border-color: #8fcea6; color: #1e6b38; }
+    .pending-tag { background: #fdecdc; border-color: #dda06c; color: #8a4a12; }
     .muted { color: #5c7378; font-size: 13px; }
-    @media (max-width: 980px) { header { display: block; } .app { grid-template-columns: 1fr; } .map { height: 560px; } }
+    .flash { margin-bottom: 10px; padding: 9px 11px; border-radius: 8px; font-size: 13px; display: none; }
+    .flash.ok { display: block; background: #e2f6e8; border: 1px solid #8fcea6; color: #1e6b38; }
+    .flash.err { display: block; background: #fbe7e5; border: 1px solid #d89b95; color: #842d27; }
+    .flash.info { display: block; background: #eef5f6; border: 1px solid #bcd3d6; color: #2c555d; }
+    .card { border: 1px solid #d7e4e5; border-radius: 8px; padding: 10px 12px; margin-bottom: 10px; }
+    .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .kv { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin: 8px 0; font-size: 13px; }
+    .kv .k span { color: #5c7378; margin-right: 6px; }
+    .kv .k b { font-weight: 700; }
+    .kv .full { grid-column: 1 / -1; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+    .pend { border-left: 4px solid #dda06c; background: #fffaf3; }
+    .diff { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0; }
+    .diff td { border: 1px solid #ecd9c2; padding: 5px 7px; }
+    .diff .old { color: #8a4a12; text-decoration: line-through; }
+    .diff .new { color: #1e6b38; font-weight: 700; }
+    .ver { border-top: 1px dashed #d7e4e5; padding: 6px 0; font-size: 13px; }
+    .ver:first-child { border-top: 0; }
+    .ver b { margin-right: 6px; }
+    .warn { font-size: 12px; color: #8a4a12; margin: 6px 0 0; }
+    .empty { color: #5c7378; font-size: 13px; padding: 14px; text-align: center; border: 1px dashed #c9dadc; border-radius: 8px; }
+    @media (max-width: 980px) { header { display: block; } .app { grid-template-columns: 1fr; } .map { height: 560px; } .side { max-height: none; } }
   </style>
 </head>
 <body>
   <header>
-    <div><h1>水下考古潜水记录</h1><div class="muted">点击沉船平面图添加标记，筛选、编辑并导出JSON。</div></div>
-    <button id="exportBtn">导出JSON</button>
+    <div>
+      <h1>水下考古样本移交台</h1>
+      <div class="muted">样本以「潜次 + 编号」唯一，依次经过 出水登记 → 封存复核 → 入库移交，不可跳步；复核修订留版、待确认修订唯一、潜水员与复核人分离。</div>
+    </div>
+    <button id="exportBtn">导出JSON（按当前筛选）</button>
   </header>
   <main class="app">
-    <section class="panel">
-      <div class="map" id="map"><div class="wreck"></div></div>
-    </section>
-    <aside class="panel">
-      <div class="toolbar">
-        <select id="filter"><option value="">全部类型</option><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select>
-        <select id="view"><option value="list">标记列表</option><option value="timeline">潜次时间线</option></select>
+    <section class="panel mapwrap">
+      <div class="map" id="map">
+        <div class="wreck"></div>
+        <div class="maphint">点击沉船平面图空白处，按潜次与编号登记出水样本</div>
       </div>
-      <form id="form">
-        <h2>标记信息</h2>
-        <input name="id" type="hidden">
-        <label>编号</label><input name="code" required>
-        <label>类型</label><select name="type"><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select>
-        <label>潜次</label><input name="dive" placeholder="例如DIVE-04" required>
-        <label>深度</label><input name="depth" placeholder="例如18.4m" required>
-        <label>朝向</label><input name="orientation" placeholder="例如东北偏北">
-        <label>保存状态</label><input name="condition" placeholder="例如表面附着贝类">
-        <label>备注</label><textarea name="note"></textarea>
-        <div class="toolbar"><button>保存标记</button><button type="button" id="deleteBtn" class="secondary">删除</button></div>
-      </form>
-      <h2 id="listTitle">标记列表</h2>
+      <div class="legend">
+        <span><i class="ceramic"></i>陶片</span><span><i class="wood"></i>木构件</span><span><i class="metal"></i>金属件</span><span><i class="unknown"></i>未知物</span>
+        <span><i style="outline:2px dashed #555;border:2px solid #fff;background:#fff"></i>待复核</span>
+        <span><i style="box-shadow:0 0 0 3px #7fc4ff;background:#fff"></i>已复核待移交</span>
+        <span><i style="box-shadow:0 0 0 3px #7cde9e;background:#fff"></i>已入库</span>
+      </div>
+    </section>
+    <aside class="panel side">
+      <div id="flash" class="flash"></div>
+      <div id="detail"></div>
+      <div class="toolbar">
+        <select id="filterType"><option value="">全部类型</option><option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option></select>
+        <select id="filterStage"><option value="">全部阶段</option><option value="registered">待复核</option><option value="reviewed">待移交</option><option value="stored">已入库</option></select>
+        <select id="filterDive"><option value="">全部潜次</option></select>
+        <select id="view"><option value="list">样本清单</option><option value="timeline">潜次时间线</option></select>
+        <button type="button" id="newBtn" class="secondary">登记新样本</button>
+      </div>
+      <h2 id="listTitle">样本清单</h2>
       <div id="list" class="list"></div>
     </aside>
   </main>
+  <datalist id="staffList">
+    <option value="张潜"></option><option value="李复"></option><option value="陈静"></option><option value="刘洋"></option><option value="王库"></option>
+  </datalist>
   <script>
+    "use strict";
+    const DATA_KEY = "uaHandover.samples.v1";
+    const UI_KEY = "uaHandover.ui.v1";
     const map = document.querySelector("#map");
-    const form = document.querySelector("#form");
+    const detail = document.querySelector("#detail");
     const list = document.querySelector("#list");
-    const filter = document.querySelector("#filter");
-    const view = document.querySelector("#view");
     const listTitle = document.querySelector("#listTitle");
+    const flashEl = document.querySelector("#flash");
+    const filterType = document.querySelector("#filterType");
+    const filterStage = document.querySelector("#filterStage");
+    const filterDive = document.querySelector("#filterDive");
+    const view = document.querySelector("#view");
+
     const typeNames = { ceramic: "陶片", wood: "木构件", metal: "金属件", unknown: "未知物" };
-    let marks = JSON.parse(localStorage.getItem("zfl30Marks") || "[]");
-    let pending = null;
-    if (!marks.length) {
-      marks = [
-        { id: crypto.randomUUID(), code: "A-017", type: "ceramic", dive: "DIVE-01", x: 42, y: 46, depth: "17.8m", orientation: "东", condition: "边缘残缺", note: "靠近船肋" },
-        { id: crypto.randomUUID(), code: "W-003", type: "wood", dive: "DIVE-02", x: 58, y: 39, depth: "18.2m", orientation: "西北", condition: "稳定", note: "疑似横梁" }
-      ];
-      save();
+    const fieldNames = { depth: "深度", orientation: "朝向", condition: "保存状态" };
+    const stageShort = { registered: "待复核", reviewed: "待移交", stored: "已入库" };
+    const stageFull = {
+      registered: "待复核（已出水登记）",
+      reviewed: "待移交（已封存复核）",
+      stored: "已入库移交"
+    };
+    const uid = () => (crypto.randomUUID ? crypto.randomUUID() : "id-" + Date.now() + "-" + Math.random().toString(16).slice(2));
+    const now = () => new Date().toISOString();
+    const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    const fmt = iso => {
+      if (!iso) return "—";
+      const d = new Date(iso), p = n => String(n).padStart(2, "0");
+      return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    };
+    let flashTimer = null;
+    function flash(text, kind = "info") {
+      flashEl.textContent = text;
+      flashEl.className = "flash " + kind;
+      clearTimeout(flashTimer);
+      flashTimer = setTimeout(() => { flashEl.className = "flash"; }, 7000);
     }
+
+    /* ---------------- 数据与种子 ---------------- */
+    function seedSamples() {
+      return [
+        {
+          id: "seed-a017", code: "A-017", dive: "DIVE-01", type: "ceramic", x: 42, y: 46,
+          depth: "18.0m", orientation: "东", condition: "边缘残缺，表面附着贝类", note: "靠近船肋",
+          diver: "张潜", reviewer: "李复", receiver: "王库",
+          stage: "stored",
+          createdAt: "2026-09-15T01:12:00.000Z", reviewedAt: "2026-09-15T07:40:00.000Z", storedAt: "2026-09-16T02:05:00.000Z",
+          versions: [
+            { at: "2026-09-15T01:12:00.000Z", by: "张潜", label: "出水登记初版", changed: [], depth: "17.8m", orientation: "东", condition: "边缘残缺" },
+            { at: "2026-09-15T07:40:00.000Z", by: "李复", label: "复核确认新版", changed: ["depth", "condition"], depth: "18.0m", orientation: "东", condition: "边缘残缺，表面附着贝类" }
+          ],
+          pendingRevision: null,
+          handovers: [{ at: "2026-09-16T02:05:00.000Z", by: "王库", status: "valid" }],
+          events: [
+            { type: "register", at: "2026-09-15T01:12:00.000Z", by: "张潜" },
+            { type: "propose", at: "2026-09-15T07:30:00.000Z", by: "李复", changed: ["depth", "condition"] },
+            { type: "confirm", at: "2026-09-15T07:40:00.000Z", by: "李复", changed: ["depth", "condition"] },
+            { type: "handover", at: "2026-09-16T02:05:00.000Z", by: "王库" }
+          ]
+        },
+        {
+          id: "seed-w003", code: "W-003", dive: "DIVE-02", type: "wood", x: 58, y: 39,
+          depth: "18.2m", orientation: "西北", condition: "稳定", note: "疑似横梁",
+          diver: "张潜", reviewer: "陈静", receiver: "",
+          stage: "reviewed",
+          createdAt: "2026-09-16T01:00:00.000Z", reviewedAt: "2026-09-16T06:00:00.000Z", storedAt: null,
+          versions: [
+            { at: "2026-09-16T01:00:00.000Z", by: "张潜", label: "出水登记初版", changed: [], depth: "18.2m", orientation: "西北", condition: "稳定" }
+          ],
+          pendingRevision: null,
+          handovers: [],
+          events: [
+            { type: "register", at: "2026-09-16T01:00:00.000Z", by: "张潜" },
+            { type: "review", at: "2026-09-16T06:00:00.000Z", by: "陈静", changed: [] }
+          ]
+        },
+        {
+          id: "seed-m009", code: "M-009", dive: "DIVE-02", type: "metal", x: 35, y: 58,
+          depth: "19.0m", orientation: "南", condition: "轻微锈蚀", note: "",
+          diver: "刘洋", reviewer: "", receiver: "",
+          stage: "registered",
+          createdAt: "2026-09-17T00:30:00.000Z", reviewedAt: null, storedAt: null,
+          versions: [
+            { at: "2026-09-17T00:30:00.000Z", by: "刘洋", label: "出水登记初版", changed: [], depth: "19.0m", orientation: "南", condition: "轻微锈蚀" }
+          ],
+          pendingRevision: {
+            id: "seed-m009-p1", at: "2026-09-17T05:00:00.000Z", by: "李复", origin: "registered", invalidatedHandover: null,
+            depth: "18.6m", orientation: "南", condition: "轻微锈蚀", changed: ["depth"]
+          },
+          handovers: [],
+          events: [
+            { type: "register", at: "2026-09-17T00:30:00.000Z", by: "刘洋" },
+            { type: "propose", at: "2026-09-17T05:00:00.000Z", by: "李复", changed: ["depth"] }
+          ]
+        },
+        {
+          id: "seed-c021", code: "C-021", dive: "DIVE-03", type: "ceramic", x: 66, y: 52,
+          depth: "16.4m", orientation: "东南", condition: "完整，可拼接，局部釉面脱落", note: "入库复检发现釉面变化，已回到待复核",
+          diver: "陈静", reviewer: "李复", receiver: "",
+          stage: "registered",
+          createdAt: "2026-09-17T02:00:00.000Z", reviewedAt: "2026-09-17T08:00:00.000Z", storedAt: null,
+          versions: [
+            { at: "2026-09-17T02:00:00.000Z", by: "陈静", label: "出水登记初版", changed: [], depth: "16.4m", orientation: "东南", condition: "完整，可拼接" },
+            { at: "2026-09-17T08:00:00.000Z", by: "李复", label: "复核确认新版", changed: ["condition"], depth: "16.4m", orientation: "东南", condition: "完整，可拼接，局部釉面脱落" }
+          ],
+          pendingRevision: {
+            id: "seed-c021-p2", at: "2026-09-18T07:00:00.000Z", by: "李复", origin: "stored",
+            invalidatedHandover: { at: "2026-09-18T01:20:00.000Z", by: "王库" },
+            depth: "16.4m", orientation: "东南", condition: "完整，可拼接，局部釉面脱落（建议保湿存放）", changed: ["condition"]
+          },
+          handovers: [
+            { at: "2026-09-18T01:20:00.000Z", by: "王库", status: "invalidated", invalidatedAt: "2026-09-18T07:00:00.000Z" }
+          ],
+          events: [
+            { type: "register", at: "2026-09-17T02:00:00.000Z", by: "陈静" },
+            { type: "propose", at: "2026-09-17T07:50:00.000Z", by: "李复", changed: ["condition"] },
+            { type: "confirm", at: "2026-09-17T08:00:00.000Z", by: "李复", changed: ["condition"] },
+            { type: "handover", at: "2026-09-18T01:20:00.000Z", by: "王库" },
+            { type: "propose", at: "2026-09-18T07:00:00.000Z", by: "李复", changed: ["condition"] },
+            { type: "invalidate", at: "2026-09-18T07:00:00.000Z", by: "李复" }
+          ]
+        },
+        {
+          id: "seed-u005", code: "U-005", dive: "DIVE-03", type: "unknown", x: 50, y: 68,
+          depth: "20.1m", orientation: "北", condition: "疑似凝结物", note: "",
+          diver: "刘洋", reviewer: "", receiver: "",
+          stage: "registered",
+          createdAt: "2026-09-18T03:00:00.000Z", reviewedAt: null, storedAt: null,
+          versions: [
+            { at: "2026-09-18T03:00:00.000Z", by: "刘洋", label: "出水登记初版", changed: [], depth: "20.1m", orientation: "北", condition: "疑似凝结物" }
+          ],
+          pendingRevision: null,
+          handovers: [],
+          events: [
+            { type: "register", at: "2026-09-18T03:00:00.000Z", by: "刘洋" }
+          ]
+        }
+      ];
+    }
+
+    let samples;
+    try { samples = JSON.parse(localStorage.getItem(DATA_KEY) || "null"); } catch { samples = null; }
+    if (!Array.isArray(samples) || !samples.length) { samples = seedSamples(); saveData(); }
+
+    let ui;
+    try { ui = JSON.parse(localStorage.getItem(UI_KEY) || "null"); } catch { ui = null; }
+    ui = Object.assign({ filterType: "", filterStage: "", filterDive: "", view: "list", selectedId: null, editor: null, pos: null }, ui || {});
+    ui.editor = null; // 内联表单状态不跨刷新保留
+    if (ui.selectedId && !samples.some(s => s.id === ui.selectedId)) ui.selectedId = null;
+
+    function saveData() { localStorage.setItem(DATA_KEY, JSON.stringify(samples)); }
+    function saveUi() {
+      localStorage.setItem(UI_KEY, JSON.stringify({
+        filterType: ui.filterType, filterStage: ui.filterStage, filterDive: ui.filterDive,
+        view: ui.view, selectedId: ui.selectedId
+      }));
+    }
+
     for (let i = 0; i < 7; i++) {
       const rib = document.createElement("div");
       rib.className = "rib";
       rib.style.left = 28 + i * 7 + "%";
       map.appendChild(rib);
     }
-    function save() { localStorage.setItem("zfl30Marks", JSON.stringify(marks)); }
-    function render() {
+
+    /* ---------------- 筛选 / 视图 ---------------- */
+    const sorted = arr => [...arr].sort((a, b) =>
+      a.dive.localeCompare(b.dive, "zh-Hans-CN") || a.code.localeCompare(b.code, "zh-Hans-CN"));
+    function visibleSamples() {
+      return sorted(samples.filter(s =>
+        (!ui.filterType || s.type === ui.filterType) &&
+        (!ui.filterStage || s.stage === ui.filterStage) &&
+        (!ui.filterDive || s.dive === ui.filterDive)));
+    }
+    function currentTripleChanged(r, patch) {
+      return ["depth", "orientation", "condition"].filter(k => (r[k] ?? "") !== (patch[k] ?? ""));
+    }
+    function eventText(ev) {
+      const names = (ev.changed || []).map(k => fieldNames[k]).join("、");
+      switch (ev.type) {
+        case "register": return "出水登记 · 潜水员 " + ev.by;
+        case "review": return "封存复核通过（三项无修改）· 复核人 " + ev.by;
+        case "propose": return `提出待确认修订（${names}）· 复核人 ${ev.by}`;
+        case "confirm": return `确认修订，新版生效（${names}）· 复核人 ${ev.by}`;
+        case "reject": return "驳回修订，沿用修订前版本 · " + (ev.by || "—");
+        case "handover": return "入库移交 · 接收人 " + ev.by;
+        case "invalidate": return "入库移交失效，样本回到待复核 · 修订人 " + ev.by;
+        case "restore": return "修订被驳回，恢复原入库状态";
+        default: return ev.type;
+      }
+    }
+
+    /* ---------------- 渲染：地图 ---------------- */
+    function renderMap() {
       map.querySelectorAll(".marker").forEach(el => el.remove());
-      const filtered = filter.value ? marks.filter(m => m.type === filter.value) : marks;
-      filtered.forEach(mark => {
+      visibleSamples().forEach(s => {
         const el = document.createElement("button");
-        el.className = "marker " + mark.type + (mark.id === form.id.value ? " selected" : "");
-        el.style.left = mark.x + "%";
-        el.style.top = mark.y + "%";
-        el.textContent = mark.code.slice(0, 2);
-        el.onclick = event => { event.stopPropagation(); edit(mark.id); };
+        el.type = "button";
+        el.className = `marker ${s.type} stg-${s.stage}` + (s.id === ui.selectedId ? " selected" : "");
+        el.style.left = s.x + "%";
+        el.style.top = s.y + "%";
+        el.title = `${s.dive} ${s.code} · ${stageShort[s.stage]}`;
+        el.textContent = s.code.slice(0, 2);
+        el.onclick = e => { e.stopPropagation(); selectSample(s.id); };
         map.appendChild(el);
       });
-      if (view.value === "timeline") renderTimeline(filtered);
-      else renderList(filtered);
     }
+
+    /* ---------------- 渲染：清单 / 时间线 ---------------- */
     function renderList(data) {
-      listTitle.textContent = "标记列表";
+      listTitle.textContent = "样本清单";
       list.className = "list";
-      list.innerHTML = data.map(m => '<div class="item '+(m.id===form.id.value?'active':'')+'" data-id="'+m.id+'"><b>'+m.code+'</b> <span class="pill">'+typeNames[m.type]+'</span><div class="muted">'+m.dive+' · '+m.depth+' · '+m.orientation+'</div><div>'+m.condition+'</div></div>').join("");
-      list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => edit(el.dataset.id));
+      if (!data.length) { list.innerHTML = '<div class="empty">当前筛选下没有样本</div>'; return; }
+      list.innerHTML = data.map(s => `
+        <div class="item ${s.id === ui.selectedId ? "active" : ""}" data-id="${s.id}">
+          <b>${esc(s.code)}</b>
+          <span class="pill">${typeNames[s.type]}</span>
+          <span class="pill stage-${s.stage}">${stageShort[s.stage]}</span>
+          ${s.pendingRevision ? '<span class="pill pending-tag">待确认修订</span>' : ""}
+          <div class="muted">${esc(s.dive)} · ${esc(s.depth)} · ${esc(s.orientation) || "朝向未填"}</div>
+          <div class="muted">潜水员 ${esc(s.diver) || "—"} ｜ 复核人 ${esc(s.reviewer) || "—"} ｜ 接收人 ${esc(s.receiver) || "—"}</div>
+        </div>`).join("");
+      list.querySelectorAll("[data-id]").forEach(el => el.onclick = () => selectSample(el.dataset.id));
     }
+
     function renderTimeline(data) {
-      listTitle.textContent = "潜次时间线";
+      listTitle.textContent = "潜次时间线（每潜次仅列当前版本，历史修订不重复计入）";
       list.className = "timeline";
-      const groups = data.reduce((map, item) => ((map[item.dive] ||= []).push(item), map), {});
-      list.innerHTML = Object.entries(groups).map(([dive, items]) => '<div class="item"><b>'+dive+'</b><div class="muted">新增'+items.length+'个标记</div>'+items.map(i => '<div>'+i.code+' · '+typeNames[i.type]+'</div>').join("")+'</div>').join("");
+      if (!data.length) { list.innerHTML = '<div class="empty">当前筛选下没有样本</div>'; return; }
+      const groups = {};
+      data.forEach(s => (groups[s.dive] ||= []).push(s));
+      list.innerHTML = Object.keys(groups).sort((a, b) => a.localeCompare(b, "zh-Hans-CN")).map(dive => `
+        <div class="item tg">
+          <div class="card-head"><b>${esc(dive)}</b><span class="pill">清单 ${groups[dive].length} 件</span></div>
+          ${groups[dive].map(s => `
+            <div class="tl-rec" data-id="${s.id}">
+              <b>${esc(s.code)}</b> · ${typeNames[s.type]} · <span class="pill stage-${s.stage}">${stageShort[s.stage]}</span>
+              ${s.pendingRevision ? '<span class="pill pending-tag">待确认修订</span>' : ""}
+              ${s.events.map(ev => `<div class="tl-ev">${fmt(ev.at)} ${eventText(ev)}</div>`).join("")}
+              ${s.pendingRevision ? `<div class="tl-pend">→ 待确认：${(s.pendingRevision.changed || []).map(k => fieldNames[k]).join("、")}（${fmt(s.pendingRevision.at)} ${esc(s.pendingRevision.by)} 提出）</div>` : ""}
+            </div>`).join("")}
+        </div>`).join("");
+      list.querySelectorAll(".tl-rec[data-id]").forEach(el => el.onclick = () => selectSample(el.dataset.id));
     }
-    function edit(id) {
-      const mark = marks.find(m => m.id === id);
-      if (!mark) return;
-      for (const [key, value] of Object.entries(mark)) if (form[key]) form[key].value = value;
-      pending = { x: mark.x, y: mark.y };
-      render();
+
+    /* ---------------- 渲染：详情与操作 ---------------- */
+    function kv(k, v, full) {
+      return `<div class="k${full ? " full" : ""}"><span>${k}</span><b>${v}</b></div>`;
     }
+    function versionsCard(r) {
+      const vers = [...r.versions].reverse();
+      return `<div class="card">
+        <div class="card-head"><b>版本留档（旧版可查，共 ${r.versions.length} 版）</b></div>
+        ${vers.map((v, i) => {
+          const isCurrent = i === 0;
+          const ch = (v.changed || []).map(k => fieldNames[k]).join("、");
+          return `<div class="ver">
+            <b>v${r.versions.length - vers.indexOf(v)}</b>
+            ${isCurrent ? '<span class="pill stage-reviewed">当前版本</span>' : '<span class="pill">历史旧版</span>'}
+            <span class="muted">${esc(v.label || "")} · ${fmt(v.at)} · ${esc(v.by || "—")}</span>
+            <div class="muted">深度 ${esc(v.depth) || "—"} ｜ 朝向 ${esc(v.orientation) || "—"} ｜ 保存状态 ${esc(v.condition) || "—"}</div>
+            ${ch ? `<div class="muted">本次修订字段：${ch}</div>` : ""}
+          </div>`;
+        }).join("")}
+        ${r.handovers.length ? `<div class="card-head" style="margin-top:6px"><b>入库移交记录</b></div>` +
+          r.handovers.map(h => `<div class="ver">${fmt(h.at)} 接收人 ${esc(h.by)} ·
+            ${h.status === "valid" ? '<span class="pill stage-stored">有效</span>' : `<span class="pill pending-tag">已失效（${fmt(h.invalidatedAt)} 随再修订失效）</span>`}</div>`).join("") : ""}
+      </div>`;
+    }
+    function pendingCard(r) {
+      const p = r.pendingRevision;
+      if (!p) return "";
+      const rows = p.changed.map(k => `
+        <tr><td>${fieldNames[k]}</td><td class="old">${esc(r[k] ?? "") || "（空）"}</td><td class="new">${esc(p[k] ?? "") || "（空）"}</td></tr>`).join("");
+      return `<div class="card pend">
+        <div class="card-head"><b>待确认修订</b><span class="pill pending-tag">唯一待确认</span></div>
+        <div class="muted">${fmt(p.at)} 由复核人 <b>${esc(p.by)}</b> 提出；旧版已保留在版本留档中。</div>
+        <table class="diff"><tr><td>字段</td><td>旧版</td><td>修订后</td></tr>${rows}</table>
+        ${p.invalidatedHandover ? `<div class="warn">原入库移交（${fmt(p.invalidatedHandover.at)} 接收人 ${esc(p.invalidatedHandover.by)}）已失效，确认修订后须重新办理入库移交；驳回则恢复原入库状态。</div>` : ""}
+        <div class="actions">
+          <button type="button" data-action="confirm-rev">确认修订</button>
+          <button type="button" class="secondary" data-action="reject-rev">驳回修订</button>
+        </div>
+        <p class="warn">同一记录仅允许一条待确认修订；重复确认沿用首次结果，不会再次改写数据。</p>
+      </div>`;
+    }
+    function reviewForm(r) {
+      const submitText = r.stage === "stored" ? "提交再修订（入库移交将失效）" : (r.stage === "registered" ? "提交封存复核" : "提交复核修订");
+      return `<form id="reviewForm" class="card">
+        <b>${r.stage === "stored" ? "入库后再修订" : "封存复核"}</b>
+        <label>深度</label><input name="depth" value="${esc(r.depth)}">
+        <label>朝向</label><input name="orientation" value="${esc(r.orientation)}">
+        <label>保存状态</label><input name="condition" value="${esc(r.condition)}">
+        <label>复核人（不得与潜水员「${esc(r.diver)}」相同）</label>
+        <input name="reviewer" list="staffList" value="${esc(r.reviewer && r.reviewer !== r.diver ? r.reviewer : "")}" required>
+        ${r.stage === "stored" ? '<p class="warn">入库样本修改深度/朝向/保存状态：原入库移交立即失效，样本回到待复核，确认修订后需重新入库；旧版仍保留可查。</p>'
+          : '<p class="muted">三项均不修改则直接通过复核；任一项修改将保留旧版并生成一条待确认修订。</p>'}
+        <div class="actions"><button>${submitText}</button><button type="button" class="secondary" data-action="cancel">取消</button></div>
+      </form>`;
+    }
+    function handoverForm() {
+      return `<form id="handoverForm" class="card">
+        <b>入库移交</b>
+        <label>仓库接收人</label><input name="receiver" list="staffList" required>
+        <p class="muted">接收后样本进入库房；此后若再修订深度、朝向或保存状态，入库移交将失效并回到待复核。</p>
+        <div class="actions"><button>确认入库移交</button><button type="button" class="secondary" data-action="cancel">取消</button></div>
+      </form>`;
+    }
+    function renderDetail() {
+      if (ui.pos) {
+        detail.innerHTML = `<form id="newForm" class="card">
+          <b>出水登记</b>
+          <p class="muted">样本以「潜次 + 编号」唯一标识，登记后不可跳步进入下一环节。</p>
+          <label>潜次</label><input name="dive" list="diveList" value="DIVE-01" required>
+          <label>编号（同一潜次内唯一）</label><input name="code" value="S-${String(samples.length + 1).padStart(3, "0")}" required>
+          <label>类型</label><select name="type">
+            <option value="ceramic">陶片</option><option value="wood">木构件</option><option value="metal">金属件</option><option value="unknown">未知物</option>
+          </select>
+          <label>深度</label><input name="depth" placeholder="例如 18.0m" required>
+          <label>朝向</label><input name="orientation" placeholder="例如 东北偏北">
+          <label>保存状态</label><input name="condition" placeholder="例如 表面附着贝类">
+          <label>潜水员（出水登记人）</label><input name="diver" list="staffList" required>
+          <label>备注</label><textarea name="note"></textarea>
+          <div class="actions"><button>完成出水登记</button><button type="button" class="secondary" data-action="cancel">取消</button></div>
+        </form>
+        <datalist id="diveList">${[...new Set(samples.map(s => s.dive))].sort().map(d => `<option value="${esc(d)}"></option>`).join("")}</datalist>`;
+        return;
+      }
+      const r = samples.find(s => s.id === ui.selectedId);
+      if (!r) {
+        detail.innerHTML = '<div class="empty">点击平面图空白处登记出水样本，或从下方清单选择样本办理复核与移交。</div>';
+        return;
+      }
+      const people = `
+        ${kv("潜水员", esc(r.diver) || "—")}
+        ${kv("复核人", esc(r.reviewer) || "—")}
+        ${kv("接收人", esc(r.receiver) || "—", r.stage === "stored")}
+        ${kv("登记时间", fmt(r.createdAt))}
+        ${r.note ? kv("备注", esc(r.note), true) : ""}`;
+      let actions = "";
+      if (!r.pendingRevision) {
+        if (r.stage === "registered" && ui.editor !== "review")
+          actions = `<div class="actions"><button type="button" data-action="open-review">封存复核</button>
+            <button type="button" class="danger" data-action="delete-record">删除登记</button></div>
+            <p class="muted">须先完成封存复核（复核人≠潜水员），不能直接入库。</p>`;
+        if (r.stage === "reviewed" && ui.editor !== "handover" && ui.editor !== "review")
+          actions = `<div class="actions"><button type="button" data-action="open-handover">入库移交</button>
+            <button type="button" class="secondary" data-action="open-review">复核修订</button></div>`;
+        if (r.stage === "stored" && ui.editor !== "review")
+          actions = `<div class="actions"><button type="button" data-action="open-review">登记再修订</button></div>
+            <p class="muted">已入库样本再修订将使入库移交失效并回到待复核，旧版仍可查。</p>`;
+      }
+      detail.innerHTML = `
+        <div class="card">
+          <div class="card-head">
+            <div><b style="font-size:18px">${esc(r.code)}</b> <span class="pill">${esc(r.dive)}</span> <span class="pill">${typeNames[r.type]}</span></div>
+            <span class="pill stage-${r.stage}">${stageFull[r.stage]}</span>
+          </div>
+          <div class="kv">
+            ${kv("深度", esc(r.depth) || "—")}
+            ${kv("朝向", esc(r.orientation) || "—")}
+            ${kv("保存状态", esc(r.condition) || "—", true)}
+            ${people}
+          </div>
+          ${actions}
+        </div>
+        ${pendingCard(r)}
+        ${ui.editor === "review" && !r.pendingRevision ? reviewForm(r) : ""}
+        ${ui.editor === "handover" && r.stage === "reviewed" && !r.pendingRevision ? handoverForm() : ""}
+        ${versionsCard(r)}`;
+    }
+
+    function render() {
+      // 潜次下拉始终基于全部数据，保证刷新后可切换
+      const dives = [...new Set(samples.map(s => s.dive))].sort((a, b) => a.localeCompare(b, "zh-Hans-CN"));
+      filterDive.innerHTML = '<option value="">全部潜次</option>' + dives.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join("");
+      filterType.value = ui.filterType;
+      filterStage.value = ui.filterStage;
+      filterDive.value = ui.filterDive;
+      view.value = ui.view;
+      renderMap();
+      renderDetail();
+      const data = visibleSamples();
+      if (ui.view === "timeline") renderTimeline(data); else renderList(data);
+    }
+
+    /* ---------------- 业务操作 ---------------- */
+    function selectSample(id) {
+      ui.selectedId = id;
+      ui.pos = null;
+      ui.editor = null;
+      saveUi(); render();
+    }
+    function beginNew(x, y) {
+      // 登记新样本时放开筛选，避免新样本被当前筛选隐藏
+      ui.filterType = ui.filterStage = ui.filterDive = "";
+      ui.selectedId = null;
+      ui.editor = null;
+      ui.pos = { x, y };
+      saveUi(); render();
+    }
+    function registerSample(payload) {
+      const code = payload.code.trim(), dive = payload.dive.trim();
+      const depth = payload.depth.trim(), diver = payload.diver.trim();
+      if (!code || !dive) return flash("潜次与编号必填", "err");
+      if (!depth) return flash("深度必填", "err");
+      if (!diver) return flash("潜水员（出水登记人）必填", "err");
+      if (samples.some(s => s.dive === dive && s.code === code))
+        return flash(`样本 ${dive} / ${code} 已存在：样本以潜次和编号唯一，不能重复登记`, "err");
+      const ts = now();
+      const r = {
+        id: uid(), code, dive, type: payload.type, x: ui.pos.x, y: ui.pos.y,
+        depth, orientation: payload.orientation.trim(), condition: payload.condition.trim(),
+        note: payload.note.trim(), diver, reviewer: "", receiver: "",
+        stage: "registered", createdAt: ts, reviewedAt: null, storedAt: null,
+        versions: [{ at: ts, by: diver, label: "出水登记初版", changed: [], depth, orientation: payload.orientation.trim(), condition: payload.condition.trim() }],
+        pendingRevision: null, handovers: [],
+        events: [{ type: "register", at: ts, by: diver }]
+      };
+      samples.push(r);
+      ui.pos = null; ui.selectedId = r.id;
+      saveData(); saveUi(); render();
+      flash(`出水登记完成：${dive} / ${code}，下一步须封存复核`, "ok");
+    }
+    function submitReview(payload) {
+      const r = samples.find(s => s.id === ui.selectedId);
+      if (!r) return;
+      const reviewer = payload.reviewer.trim();
+      const patch = { depth: payload.depth.trim(), orientation: payload.orientation.trim(), condition: payload.condition.trim() };
+      if (!reviewer) return flash("请填写复核人", "err");
+      if (reviewer === r.diver) return flash("潜水员与复核人不得相同，请由另一名人员复核", "err");
+      if (r.pendingRevision) return flash("该记录已有一条待确认修订，请先确认或驳回；不能叠加新的待确认修订", "err");
+      const changed = currentTripleChanged(r, patch);
+      const ts = now();
+      if (!changed.length) {
+        if (r.stage === "stored") return flash("入库样本再修订须修改深度、朝向或保存状态中的至少一项", "err");
+        r.stage = "reviewed";
+        r.reviewer = reviewer;
+        r.reviewedAt = ts;
+        r.events.push({ type: "review", at: ts, by: reviewer, changed: [] });
+        ui.editor = null;
+        saveData(); render();
+        return flash("封存复核通过（三项无修改），可办理入库移交", "ok");
+      }
+      const invalidatedHandover = r.stage === "stored" ? { at: r.storedAt, by: r.receiver } : null;
+      r.pendingRevision = { id: uid(), at: ts, by: reviewer, origin: r.stage, invalidatedHandover, changed, ...patch };
+      r.events.push({ type: "propose", at: ts, by: reviewer, changed });
+      if (r.stage === "stored") {
+        const h = r.handovers[r.handovers.length - 1];
+        if (h && h.status === "valid") { h.status = "invalidated"; h.invalidatedAt = ts; }
+        r.events.push({ type: "invalidate", at: ts, by: reviewer });
+        r.stage = "registered";
+        r.storedAt = null;
+        r.receiver = "";
+      }
+      ui.editor = null;
+      saveData(); render();
+      flash(invalidatedHandover
+        ? "已生成待确认修订，旧版保留；原入库移交失效，样本回到待复核"
+        : "已保留旧版并生成待确认修订，确认后新版才会生效", "ok");
+    }
+    function confirmRevision() {
+      const r = samples.find(s => s.id === ui.selectedId);
+      if (!r) return;
+      const p = r.pendingRevision;
+      if (!p) return flash("该记录没有待确认修订：重复确认沿用首次结果，数据不再变更", "info");
+      const ts = now();
+      r.versions.push({ at: ts, by: p.by, label: "复核确认新版", changed: p.changed, depth: p.depth, orientation: p.orientation, condition: p.condition });
+      r.depth = p.depth; r.orientation = p.orientation; r.condition = p.condition;
+      if (r.stage === "registered") { r.stage = "reviewed"; r.reviewedAt = ts; }
+      r.reviewer = p.by;
+      r.events.push({ type: "confirm", at: ts, by: p.by, changed: p.changed });
+      r.pendingRevision = null;
+      saveData(); render();
+      flash("修订已确认并生效，旧版保留在版本留档；可继续办理入库移交", "ok");
+    }
+    function rejectRevision() {
+      const r = samples.find(s => s.id === ui.selectedId);
+      if (!r) return;
+      const p = r.pendingRevision;
+      if (!p) return flash("该记录没有待确认修订", "info");
+      const ts = now();
+      r.events.push({ type: "reject", at: ts, by: p.by });
+      if (p.invalidatedHandover) {
+        const h = r.handovers[r.handovers.length - 1];
+        if (h) { h.status = "valid"; delete h.invalidatedAt; }
+        r.stage = "stored";
+        r.storedAt = p.invalidatedHandover.at;
+        r.receiver = p.invalidatedHandover.by;
+        r.events.push({ type: "restore", at: ts });
+      }
+      r.pendingRevision = null;
+      saveData(); render();
+      flash("已驳回修订，继续沿用修订前版本", "ok");
+    }
+    function submitHandover(payload) {
+      const r = samples.find(s => s.id === ui.selectedId);
+      if (!r) return;
+      if (r.stage !== "reviewed") return flash("只有已封存复核的样本才能入库移交，不能跳步", "err");
+      if (r.pendingRevision) return flash("尚有待确认修订未处理，不能办理入库移交", "err");
+      const receiver = payload.receiver.trim();
+      if (!receiver) return flash("请填写仓库接收人", "err");
+      const ts = now();
+      r.stage = "stored";
+      r.receiver = receiver;
+      r.storedAt = ts;
+      r.handovers.push({ at: ts, by: receiver, status: "valid" });
+      r.events.push({ type: "handover", at: ts, by: receiver });
+      ui.editor = null;
+      saveData(); render();
+      flash("入库移交完成", "ok");
+    }
+    function deleteRecord() {
+      const r = samples.find(s => s.id === ui.selectedId);
+      if (!r) return;
+      if (r.stage !== "registered" || r.pendingRevision)
+        return flash("已进入复核/移交流转或存在待确认修订的样本不能删除", "err");
+      samples = samples.filter(s => s.id !== r.id);
+      ui.selectedId = null;
+      saveData(); saveUi(); render();
+      flash("已删除该条出水登记", "ok");
+    }
+
+    /* ---------------- 事件绑定 ---------------- */
     map.addEventListener("click", event => {
       const rect = map.getBoundingClientRect();
-      pending = { x: Number(((event.clientX - rect.left) / rect.width * 100).toFixed(2)), y: Number(((event.clientY - rect.top) / rect.height * 100).toFixed(2)) };
-      form.reset();
-      form.id.value = "";
-      form.code.value = "M-" + String(marks.length + 1).padStart(3, "0");
-      form.dive.value = "DIVE-01";
-      render();
+      const x = Number(((event.clientX - rect.left) / rect.width * 100).toFixed(2));
+      const y = Number(((event.clientY - rect.top) / rect.height * 100).toFixed(2));
+      beginNew(x, y);
     });
-    form.onsubmit = event => {
+    document.querySelector("#newBtn").onclick = () => beginNew(50, 50);
+
+    detail.addEventListener("click", event => {
+      const btn = event.target.closest("[data-action]");
+      if (!btn) return;
+      const act = btn.dataset.action;
+      if (act === "open-review") { ui.editor = "review"; render(); }
+      else if (act === "open-handover") { ui.editor = "handover"; render(); }
+      else if (act === "cancel") { ui.editor = null; ui.pos = null; saveUi(); render(); }
+      else if (act === "confirm-rev") confirmRevision();
+      else if (act === "reject-rev") rejectRevision();
+      else if (act === "delete-record") deleteRecord();
+    });
+    detail.addEventListener("submit", event => {
       event.preventDefault();
-      if (!pending) pending = { x: 50, y: 50 };
-      const data = Object.fromEntries(new FormData(form).entries());
-      if (data.id) Object.assign(marks.find(m => m.id === data.id), data, pending);
-      else marks.push({ ...data, id: crypto.randomUUID(), ...pending });
-      save(); render();
-    };
-    document.querySelector("#deleteBtn").onclick = () => {
-      if (!form.id.value) return;
-      marks = marks.filter(m => m.id !== form.id.value);
-      form.reset(); pending = null; save(); render();
-    };
+      const f = event.target;
+      const data = Object.fromEntries(new FormData(f).entries());
+      if (f.id === "newForm") registerSample(data);
+      else if (f.id === "reviewForm") submitReview(data);
+      else if (f.id === "handoverForm") submitHandover(data);
+    });
+
+    filterType.onchange = () => { ui.filterType = filterType.value; saveUi(); render(); };
+    filterStage.onchange = () => { ui.filterStage = filterStage.value; saveUi(); render(); };
+    filterDive.onchange = () => { ui.filterDive = filterDive.value; saveUi(); render(); };
+    view.onchange = () => { ui.view = view.value; saveUi(); render(); };
+
     document.querySelector("#exportBtn").onclick = () => {
-      const blob = new Blob([JSON.stringify(marks, null, 2)], { type: "application/json" });
+      const data = visibleSamples(); // 与清单、时间线同一筛选口径
+      const payload = {
+        app: "水下考古样本移交台",
+        exportedAt: now(),
+        filters: { type: ui.filterType || null, stage: ui.filterStage || null, dive: ui.filterDive || null },
+        count: data.length,
+        samples: data
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
       const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = "dive-marks.json"; a.click(); URL.revokeObjectURL(a.href);
+      const d = new Date();
+      a.href = URL.createObjectURL(blob);
+      a.download = `ua-handover-${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}.json`;
+      a.click();
+      if (URL.revokeObjectURL) URL.revokeObjectURL(a.href);
+      flash(`已按当前筛选导出 ${data.length} 条样本（仅当前版本，旧版在各样本 versions 内留档）`, "ok");
     };
-    filter.onchange = render; view.onchange = render;
+
+    saveUi();
     render();
   </script>
 </body>
